@@ -20,3 +20,7 @@ Used functions
 Arguments
 - -v
 - -h
+- -G
+- -g
+- -a
+- -q
