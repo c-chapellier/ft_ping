@@ -143,7 +143,11 @@ static void get_ips()
     hints.ai_flags = 0;
     hints.ai_protocol = IPPROTO_ICMP;
 
+#if __APPLE__
     rc = getaddrinfo(metadata.server_domain, metadata.server_port, &hints, &res);
+#elif __linux__
+    rc = getaddrinfo(metadata.server_domain, NULL, &hints, &res);
+#endif
     if (rc != 0)
     {
         fprintf(stderr, "ft_ping: cannot resolve %s: unknow host\n", metadata.server_domain);
@@ -271,12 +275,20 @@ static void catcher()
         rc = recvmsg(metadata.socket_fd, &msg, 0);
         if (rc < 0)
         {
-            if (errno != EAGAIN)
+            switch (errno)
             {
-                perror("ping: read");
-                exit(1);
+                case EAGAIN:
+                    printf("Request timeout for icmp_seq %d\n", metadata.n_packet_send - 1);
+                    break ;
+#if __linux__
+                case EINTR:
+                    break ;
+#endif
+                default:
+                    printf("ret = %d\n", errno);
+                    perror("ping: recvmsg");
+                    exit(1);
             }
-            printf("Request timeout for icmp_seq %d\n", metadata.n_packet_send - 1);
             continue ;
 	    }
 
